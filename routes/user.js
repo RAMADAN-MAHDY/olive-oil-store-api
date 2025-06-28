@@ -45,7 +45,7 @@ router.post('/login', async (req, res) => {
             httpOnly: true,
             secure: true, // لازم https
             sameSite: 'none', // ضروري للسيرفر والدومين المختلف
-            domain: '.vercel.app', // أو دومين الـ API فقط إذا احتجت
+            // domain: '.vercel.app', // أو دومين الـ API فقط إذا احتجت
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
         res.json({ message: 'تم تسجيل الدخول بنجاح', user: { id: user._id, name: user.name, email: user.email, isAdmin: user.isAdmin } });
