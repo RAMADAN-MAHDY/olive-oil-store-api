@@ -43,7 +43,9 @@ router.post('/login', async (req, res) => {
         // إرسال التوكن في كوكيز httpOnly
         res.cookie('token', token, {
             httpOnly: true,
+            // secure: false, // لازم https
             secure: true, // لازم https
+            // asmeSite: 'lax', // ضروري للسيرفر والدومين المختلف
             sameSite: 'none', // ضروري للسيرفر والدومين المختلف
             // domain: '.vercel.app', // أو دومين الـ API فقط إذا احتجت
             maxAge: 7 * 24 * 60 * 60 * 1000
