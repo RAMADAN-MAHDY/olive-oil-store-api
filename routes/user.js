@@ -43,10 +43,10 @@ router.post('/login', async (req, res) => {
         // إرسال التوكن في كوكيز httpOnly
         res.cookie('token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            // sameSite: 'lax', // يمكن تغييره إلى 'strict' حسب الحاجة
-            sameSite: 'none', // إذا كنت تريد استخدام نفس الموقع فقط
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 أيام
+            secure: true, // لازم https
+            sameSite: 'none', // ضروري للسيرفر والدومين المختلف
+            domain: '.vercel.app', // أو دومين الـ API فقط إذا احتجت
+            maxAge: 7 * 24 * 60 * 60 * 1000
         });
         res.json({ message: 'تم تسجيل الدخول بنجاح', user: { id: user._id, name: user.name, email: user.email, isAdmin: user.isAdmin } });
     } catch (err) {
@@ -56,7 +56,7 @@ router.post('/login', async (req, res) => {
 
 // راوتر التحقق من تسجيل الدخول
 router.get('/check', protect, (req, res) => {
-  res.json({ user: req.user });
+    res.json({ user: req.user });
 });
 
 export default router;
