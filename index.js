@@ -25,6 +25,7 @@ app.use(limiter);
 // CORS أكثر أماناً
 const allowedOrigins = [
     'https://olive-oil-store-tau.vercel.app',
+    'https://spontaneous-valkyrie-aae13b.netlify.app',
     // 'http://localhost:3000'
 ];
 app.use(cors({
