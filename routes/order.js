@@ -1,5 +1,6 @@
 import express from 'express';
 import Order from '../models/Order.js';
+import User from '../models/User.js';
 import { protect, admin, sanitizeInput } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -130,6 +131,21 @@ router.get('/', protect, admin, async (req, res) => {
   } catch (err) {
     console.error('Get all orders error:', err);
     res.status(500).json({ message: 'حدث خطأ في جلب الطلبات' });
+  }
+});
+
+// Admin endpoint: list users with their orders
+router.get('/admin/users', protect, admin, async (req, res) => {
+  try {
+    const users = await User.find().select('name email').lean();
+    const usersWithOrders = await Promise.all(users.map(async (u) => {
+      const orders = await Order.find({ user: u._id }).sort({ createdAt: -1 });
+      return { ...u, orders };
+    }));
+    res.json(usersWithOrders);
+  } catch (err) {
+    console.error('Get admin users with orders error:', err);
+    res.status(500).json({ message: 'حدث خطأ في جلب مستخدمي الأدمن والطلبات' });
   }
 });
 
