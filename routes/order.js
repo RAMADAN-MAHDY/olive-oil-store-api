@@ -6,37 +6,47 @@ const router = express.Router();
 
 // Helpers
 const toNumber = (v) => {
-  const n = Number(v);
+  if (v === undefined || v === null) return null;
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+  const s = String(v).trim();
+  if (s === '') return null;
+  const n = Number(s);
   return Number.isFinite(n) ? n : null;
 };
 
 // Create new order (authenticated user)
 router.post('/', protect, async (req, res) => {
   try {
-    // Accept both frontend field names and older names
+    // Log body for debugging when needed
+    console.log('Order POST body:', req.body);
+
+    // Accept common frontend field names
     const name = req.body.name || req.body.fullName || '';
     const phone = req.body.phone || req.body.mobile || '';
     const address = req.body.address || req.body.addr || '';
     const city = req.body.city || req.body.province || '';
 
-    // frontend uses selectedQuantity/selectedPrice
-    const quantity = toNumber(req.body.quantity ?? req.body.selectedQuantity ?? req.body.qty);
-    const price = toNumber(req.body.price ?? req.body.selectedPrice ?? req.body.unitPrice ?? req.body.totalPrice);
+    // Try many variants for quantity/price to be robust
+    const quantity = toNumber(req.body.quantity ?? req.body.selectedQuantity ?? req.body.qty ?? req.body.amount);
+    const price = toNumber(req.body.price ?? req.body.selectedPrice ?? req.body.originalPrice ?? req.body.unitPrice ?? req.body.totalPrice ?? req.body.total ?? req.body.amountPrice);
 
     if (!name || !phone || !address || !city || !quantity || !price) {
-      return res.status(400).json({ message: 'جميع الحقول مطلوبة: name, phone, address, city, quantity, price' });
+      console.error('Order validation failed - missing fields', { name, phone, address, city, quantity, price });
+      return res.status(400).json({ message: 'جميع الحقول مطلوبة: name, phone, address, city, quantity, price', received: { name, phone, address, city, quantity, price } });
     }
 
     // discount rate can come from env or default to 40
     const discountRate = toNumber(process.env.DEFAULT_DISCOUNT_RATE) ?? 40;
 
     const safeOrder = {
-      user: req.user._id,
+      user: req.user ? req.user._id : null,
       name: sanitizeInput(name),
       phone: sanitizeInput(phone),
       address: sanitizeInput(address),
       city: sanitizeInput(city),
       quantity,
+      // keep compatibility with existing schema which expects `price`
+      price: price,
       originalPrice: price,
       discountRate,
       finalPrice: +(price * (1 - discountRate / 100)).toFixed(2),
@@ -55,15 +65,18 @@ router.post('/', protect, async (req, res) => {
 // Create order for guest (no auth) - used by frontend when user isn't logged in
 router.post('/guest', async (req, res) => {
   try {
+    console.log('Guest Order POST body:', req.body);
+
     const name = req.body.name || '';
     const phone = req.body.phone || '';
     const address = req.body.address || '';
     const city = req.body.city || '';
-    const quantity = toNumber(req.body.quantity ?? req.body.selectedQuantity ?? req.body.qty);
-    const price = toNumber(req.body.price ?? req.body.selectedPrice ?? req.body.totalPrice);
+    const quantity = toNumber(req.body.quantity ?? req.body.selectedQuantity ?? req.body.qty ?? req.body.amount);
+    const price = toNumber(req.body.price ?? req.body.selectedPrice ?? req.body.originalPrice ?? req.body.unitPrice ?? req.body.totalPrice ?? req.body.total ?? req.body.amountPrice);
 
     if (!name || !phone || !address || !city || !quantity || !price) {
-      return res.status(400).json({ message: 'جميع الحقول مطلوبة للطلب كزائر' });
+      console.error('Guest Order validation failed - missing fields', { name, phone, address, city, quantity, price });
+      return res.status(400).json({ message: 'جميع الحقول مطلوبة للطلب كزائر', received: { name, phone, address, city, quantity, price } });
     }
 
     const discountRate = toNumber(process.env.DEFAULT_DISCOUNT_RATE) ?? 40;
@@ -75,6 +88,8 @@ router.post('/guest', async (req, res) => {
       address: sanitizeInput(address),
       city: sanitizeInput(city),
       quantity,
+      // include `price` to satisfy existing schema
+      price: price,
       originalPrice: price,
       discountRate,
       finalPrice: +(price * (1 - discountRate / 100)).toFixed(2),
