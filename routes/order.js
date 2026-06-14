@@ -32,7 +32,7 @@ router.post('/', protect, async (req, res) => {
 
     if (!name || !phone || !address || !city || !quantity || !price) {
       console.error('Order validation failed - missing fields', { name, phone, address, city, quantity, price });
-      return res.status(400).json({ message: 'جميع الحقول مطلوبة: name, phone, address, city, quantity, price', received: { name, phone, address, city, quantity, price } });
+      return res.status(400).json({ message: 'جميع الحقول مطلوبة: name, phone, address, city, quantity, price', received: { name, phone, address, city, quantity, price }, rawBody: req.body });
     }
 
     // discount rate can come from env or default to 40
@@ -57,6 +57,10 @@ router.post('/', protect, async (req, res) => {
 
     res.status(201).json(order);
   } catch (err) {
+    if (err && err.name === 'ValidationError') {
+      console.error('Order ValidationError:', err);
+      return res.status(400).json({ message: 'Validation failed', errors: err.errors, received: req.body });
+    }
     console.error('Order POST error:', err);
     res.status(500).json({ message: 'حدث خطأ أثناء إنشاء الطلب', error: err.message });
   }
@@ -76,7 +80,7 @@ router.post('/guest', async (req, res) => {
 
     if (!name || !phone || !address || !city || !quantity || !price) {
       console.error('Guest Order validation failed - missing fields', { name, phone, address, city, quantity, price });
-      return res.status(400).json({ message: 'جميع الحقول مطلوبة للطلب كزائر', received: { name, phone, address, city, quantity, price } });
+      return res.status(400).json({ message: 'جميع الحقول مطلوبة للطلب كزائر', received: { name, phone, address, city, quantity, price }, rawBody: req.body });
     }
 
     const discountRate = toNumber(process.env.DEFAULT_DISCOUNT_RATE) ?? 40;
@@ -98,6 +102,10 @@ router.post('/guest', async (req, res) => {
 
     res.status(201).json(order);
   } catch (err) {
+    if (err && err.name === 'ValidationError') {
+      console.error('Guest Order ValidationError:', err);
+      return res.status(400).json({ message: 'Validation failed', errors: err.errors, received: req.body });
+    }
     console.error('Guest Order POST error:', err);
     res.status(500).json({ message: 'حدث خطأ أثناء إنشاء طلب الضيف', error: err.message });
   }
